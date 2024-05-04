@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:post_bloc/models/post_model.dart';
-import 'package:post_bloc/models/post_res_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:post_bloc/bloc/create_bloc.dart';
+import 'package:post_bloc/bloc/create_event.dart';
+import 'package:post_bloc/bloc/create_state.dart';
 
-
-import '../services/http_service.dart';
-import '../services/log_service.dart';
 
 class CreatPage extends StatefulWidget {
   const CreatPage({super.key});
@@ -14,23 +13,25 @@ class CreatPage extends StatefulWidget {
 }
 
 class _CreatPageState extends State<CreatPage> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _bodyController = TextEditingController();
 
-  _creatPost() async{
-    String title = _titleController.text.toString().trim();
-    String body = _bodyController.text.toString().trim();
-    Post post = Post(userId: 1,title: title, body: body);
+  late  CreateBloc createBloc;
 
-    var response = await Network.POST(Network.API_POST_CREATE, Network.paramsCreate(post));
-    LogService.d(response!);
-    PostRes postRes = Network.parsePostRes(response);
-    backToFinish();
-  }
 
   backToFinish(){
     Navigator.of(context).pop(true);
   }
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    createBloc = BlocProvider.of(context);
+    createBloc.stream.listen((state) {
+      if (state is CreatedPostState) {
+        backToFinish();
+      }
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -39,41 +40,65 @@ class _CreatPageState extends State<CreatPage> {
         backgroundColor: Colors.blue,
         title: Text("Creat Post"),
       ),
-      body: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Container(
-              child: TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                    hintText: "Title"
-                ),
-              ),
+      body: BlocBuilder<CreateBloc, CreateState>(
+        builder: (context, state) {
+          if (state is CreateErrorState) {
+            return viewOfError(state.errorMessage);
+          }
+
+          if (state is CreateLoadingState) {
+            return viewOfLoading();
+          }
+
+          return viewOfNewPost();
+        },
+      ),
+    );
+  }
+
+  Widget viewOfError(String err) {
+    return Center(
+      child: Text("Error occurred $err"),
+    );
+  }
+
+  Widget viewOfLoading() {
+    return const Center(
+      child: CircularProgressIndicator(),
+    );
+  }
+  Widget viewOfNewPost() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          TextField(
+            controller: createBloc.titleController,
+            decoration: const InputDecoration(hintText: "Title"),
+          ),
+          TextField(
+            controller: createBloc.bodyController,
+            decoration: const InputDecoration(hintText: "Body"),
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 10),
+            width: double.infinity,
+            child: MaterialButton(
+              color: Colors.blue,
+              onPressed: () {
+                String title = createBloc.titleController.text.toString().trim();
+                String body = createBloc.bodyController.text.toString().trim();
+
+                createBloc.add(CreatePostEvent(title, body));
+              },
+              child: const Text("Create"),
             ),
-            Container(
-              child: TextField(
-                controller: _bodyController,
-                decoration: InputDecoration(
-                    hintText: "Body"
-                ),
-              ),
-            ),
-            Container(
-                margin: EdgeInsets.only(top: 10),
-                width: double.infinity,
-                child: MaterialButton(
-                  color: Colors.blue,
-                  onPressed: () {
-                    _creatPost();
-                  },
-                  child: Text("Creat"),
-                )
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
+
+

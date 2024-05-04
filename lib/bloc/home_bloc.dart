@@ -1,7 +1,9 @@
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:post_bloc/bloc/create_bloc.dart';
 import 'package:post_bloc/bloc/home_evant.dart';
+import 'package:post_bloc/bloc/update_bloc.dart';
 import 'package:post_bloc/models/post_model.dart';
 import 'package:post_bloc/pages/creat_posts.dart';
 import 'package:post_bloc/pages/update_post_page.dart';
@@ -45,12 +47,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(HomeErrorState("Could not fetch posts"));
     }
   }
-
   Future callCreatePage(BuildContext context) async {
     bool result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (BuildContext context) {
-          return CreatPage();
+          return BlocProvider(
+            create: (context) => CreateBloc(),
+            child: CreatPage(),
+          );
         },
       ),
     );
@@ -64,7 +68,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     bool result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (BuildContext context) {
-          return UpdatePage(post: post);
+          return BlocProvider(
+            create: (context) => UpdateBloc(),
+            child: UpdatePage(post: post),
+          );
         },
       ),
     );
@@ -74,3 +81,5 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
   }
 }
+
+
