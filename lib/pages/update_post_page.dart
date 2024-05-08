@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:post_bloc/bloc/update_bloc.dart';
+import 'package:post_bloc/bloc/update_event.dart';
+import 'package:post_bloc/bloc/update_state.dart';
 import 'package:post_bloc/models/post_model.dart';
-import 'package:post_bloc/models/post_res_model.dart';
-import 'package:post_bloc/services/http_service.dart';
 import 'package:post_bloc/services/log_service.dart';
 
 
@@ -14,30 +15,21 @@ class UpdatePage extends StatefulWidget {
 }
 
 class _UpdatePageState extends State<UpdatePage> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _bodyController = TextEditingController();
+  UpdateBloc updateBloc= UpdateBloc();
 
-  updatePost() async{
-    String title = _titleController.text.toString().trim();
-    String body = _bodyController.text.toString().trim();
-
-    Post newPost=widget.post;
-    newPost.title=title;
-    newPost.body=body;
-
-    var response = await Network.PUT(
-        Network.API_POST_UPDATE + newPost.id.toString(),
-        Network.paramsUpdate(newPost));
-    LogService.d(response!);
-     PostRes postRes=Network.parsePostRes(response);
-    backToFinish();
-  }
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    _titleController.text=widget.post.title!;
-    _bodyController.text=widget.post.body!;
+    updateBloc.titleController.text=widget.post.title!;
+    updateBloc.bodyController.text=widget.post.body!;
+
+    updateBloc.stream.listen((state) {
+      if (state is UpdatedPostState) {
+        LogService.d('UpdatedPostState is done');
+        backToFinish();
+      }
+    });
   }
 
   backToFinish(){
@@ -63,7 +55,7 @@ class _UpdatePageState extends State<UpdatePage> {
             children: [
               Container(
                 child: TextField(
-                  controller: _titleController,
+                  controller: updateBloc.titleController,
                   decoration: InputDecoration(
                       hintText: "Title"
                   ),
@@ -71,7 +63,7 @@ class _UpdatePageState extends State<UpdatePage> {
               ),
               Container(
                 child: TextField(
-                  controller: _bodyController,
+                  controller: updateBloc.bodyController,
                   decoration: InputDecoration(
                       hintText: "Body"
                   ),
@@ -83,7 +75,7 @@ class _UpdatePageState extends State<UpdatePage> {
                   child: MaterialButton(
                     color: Colors.blue,
                     onPressed: () {
-                      updatePost();
+                      updateBloc.add(UpdatePostEvent(widget.post));
                     },
                     child: Text("Update"),
                   )
